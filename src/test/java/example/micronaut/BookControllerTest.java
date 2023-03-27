@@ -146,6 +146,22 @@ public class BookControllerTest {
 
         assertEquals( genres.size(), genreRepository.count().block() );
         assertNull( fetchedBook.getGenres() );
+
+        // Use PATCH to update genres
+        bookUpdateCommand = new BookUpdateCommand();
+        bookUpdateCommand.setId(fetchedBook.getId());
+        bookUpdateCommand.setGenres(genres.stream().map(Genre::getId).collect(Collectors.toSet()));
+
+        request = HttpRequest.PATCH("/books", bookUpdateCommand);
+        httpClient.toBlocking().exchange(request, Argument.of(Book.class), Argument.of(JsonError.class));
+
+        // Fetch the updated book and check genres removed
+        request = HttpRequest.GET("/books/" + bookId);
+        fetchedBook = httpClient.toBlocking().retrieve(request, Book.class);
+        System.out.println(fetchedBook);
+
+        assertEquals( genres.size(), genreRepository.count().block() );
+        assertEquals( genres.size(), fetchedBook.getGenres().size());
     }
 
     protected Long entityId(HttpResponse<?> response, String path) {
